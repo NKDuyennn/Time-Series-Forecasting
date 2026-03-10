@@ -84,6 +84,16 @@ parser.add_argument('--lradj', type=str, default='type3', help='adjust learning 
 parser.add_argument('--pct_start', type=float, default=0.3, help='pct_start')
 parser.add_argument('--use_amp', action='store_true', help='use automatic mixed precision training', default=False)
 
+# visualization (test plots)
+parser.add_argument('--plot_every_n_batches', type=int, default=20,
+                    help='save one test visualization every N test batches')
+parser.add_argument('--plot_features', type=str, default='',
+                    help='comma-separated output feature names to visualize, e.g. OT,HUFL')
+parser.add_argument('--plot_num_features', type=int, default=1,
+                    help='number of output features to visualize when --plot_features is empty')
+parser.add_argument('--plot_sample_idx', type=int, default=0,
+                    help='sample index inside each selected batch for visualization')
+
 # GPU
 parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
 parser.add_argument('--gpu', type=int, default=0, help='gpu')

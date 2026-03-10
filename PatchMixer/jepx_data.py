@@ -54,35 +54,50 @@ COLUMN_RENAME = {
     # Core identifiers
     "受渡日":                          "delivery_date",
     "時刻コード":                        "time_code",
-    # Bid volumes
-    "売り入札量(MWh)":                   "sell_bid_volume_mwh",
-    "買い入札量(MWh)":                   "buy_bid_volume_mwh",
-    # Contract
-    "約定総量(MWh)":                     "contract_volume_mwh",
-    "約定量(MWh)":                       "contract_volume_mwh",
+    # Bid volumes (kWh only)
+    "売り入札量(kWh)":                   "sell_bid_volume_kwh",
+    "買い入札量(kWh)":                   "buy_bid_volume_kwh",
+    "約定総量(kWh)":                     "contract_volume_kwh",
+    # Block bid/contract volumes
+    "売りブロック入札総量(kWh)":            "sell_block_bid_volume_kwh",
+    "売りブロック約定総量(kWh)":            "sell_block_contract_volume_kwh",
+    "買いブロック入札総量(kWh)":            "buy_block_bid_volume_kwh",
+    "買いブロック約定総量(kWh)":            "buy_block_contract_volume_kwh",
     # System price
     "システムプライス(円/kWh)":             "system_price",
-    # Area prices
-    "エリアプライス 北海道(円/kWh)":         "area_price_hokkaido",
-    "エリアプライス 東北(円/kWh)":           "area_price_tohoku",
-    "エリアプライス 東京(円/kWh)":           "area_price_tokyo",
-    "エリアプライス 中部(円/kWh)":           "area_price_chubu",
-    "エリアプライス 北陸(円/kWh)":           "area_price_hokuriku",
-    "エリアプライス 関西(円/kWh)":           "area_price_kansai",
-    "エリアプライス 中国(円/kWh)":           "area_price_chugoku",
-    "エリアプライス 四国(円/kWh)":           "area_price_shikoku",
-    "エリアプライス 九州(円/kWh)":           "area_price_kyushu",
-    # Congestion rent (sometimes present)
-    "連系線利用料 北海道-東北(円/kWh)":       "congestion_hokkaido_tohoku",
-    "連系線利用料 東北-東京(円/kWh)":         "congestion_tohoku_tokyo",
-    "連系線利用料 東京-中部(円/kWh)":         "congestion_tokyo_chubu",
-    "連系線利用料 中部-北陸(円/kWh)":         "congestion_chubu_hokuriku",
-    "連系線利用料 北陸-関西(円/kWh)":         "congestion_hokuriku_kansai",
-    "連系線利用料 関西-中国(円/kWh)":         "congestion_kansai_chugoku",
-    "連系線利用料 中国-四国(円/kWh)":         "congestion_chugoku_shikoku",
-    "連系線利用料 四国-九州(円/kWh)":         "congestion_shikoku_kyushu",
-    "連系線利用料 中部-関西(円/kWh)":         "congestion_chubu_kansai",
+    # Area prices (no-space variant only)
+    "エリアプライス北海道(円/kWh)":          "area_price_hokkaido",
+    "エリアプライス東北(円/kWh)":            "area_price_tohoku",
+    "エリアプライス東京(円/kWh)":            "area_price_tokyo",
+    "エリアプライス中部(円/kWh)":            "area_price_chubu",
+    "エリアプライス北陸(円/kWh)":            "area_price_hokuriku",
+    "エリアプライス関西(円/kWh)":            "area_price_kansai",
+    "エリアプライス中国(円/kWh)":            "area_price_chugoku",
+    "エリアプライス四国(円/kWh)":            "area_price_shikoku",
+    "エリアプライス九州(円/kWh)":            "area_price_kyushu",
 }
+
+# Whitelist of expected output columns (date + 17 features)
+EXPECTED_COLUMNS = [
+    "date",
+    "sell_bid_volume_kwh",
+    "buy_bid_volume_kwh",
+    "contract_volume_kwh",
+    "system_price",
+    "area_price_hokkaido",
+    "area_price_tohoku",
+    "area_price_tokyo",
+    "area_price_chubu",
+    "area_price_hokuriku",
+    "area_price_kansai",
+    "area_price_chugoku",
+    "area_price_shikoku",
+    "area_price_kyushu",
+    "sell_block_bid_volume_kwh",
+    "sell_block_contract_volume_kwh",
+    "buy_block_bid_volume_kwh",
+    "buy_block_contract_volume_kwh",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -126,8 +141,9 @@ def process(df: pd.DataFrame) -> pd.DataFrame:
     2. Rename Japanese columns to English.
     3. Build the 'date' datetime column.
     4. Drop raw identifier columns (delivery_date, time_code).
-    5. Set 'date' as first column (no pandas index).
-    6. Drop duplicate timestamps (keep last).
+    5. Filter to keep only whitelisted columns.
+    6. Set 'date' as first column (no pandas index).
+    7. Drop duplicate timestamps (keep last).
     """
     # 1. strip
     df.columns = df.columns.str.strip()
@@ -147,11 +163,16 @@ def process(df: pd.DataFrame) -> pd.DataFrame:
     # 4. drop raw identifiers
     df = df.drop(columns=["delivery_date", "time_code"], errors="ignore")
 
-    # 5. put 'date' first
-    cols = ["date"] + [c for c in df.columns if c != "date"]
-    df = df[cols]
+    # 5. filter to keep only whitelisted columns (drop unwanted extras)
+    available = [c for c in EXPECTED_COLUMNS if c in df.columns]
+    df = df[available]
 
-    # 6. drop duplicates
+    # 6. put 'date' first
+    if "date" in df.columns:
+        cols = ["date"] + [c for c in df.columns if c != "date"]
+        df = df[cols]
+
+    # 7. drop duplicates
     df = df.drop_duplicates(subset=["date"], keep="last")
 
     return df
@@ -190,6 +211,9 @@ def main():
         try:
             existing = pd.read_csv(OUTPUT_FILE)
             existing["date"] = pd.to_datetime(existing["date"])
+            # Keep only English columns from existing data
+            existing_cols = [c for c in EXPECTED_COLUMNS if c in existing.columns]
+            existing = existing[existing_cols]
             # Combine: new_data wins on duplicate timestamps
             combined = (
                 pd.concat([existing, new_data], ignore_index=True)
@@ -203,6 +227,10 @@ def main():
             combined = new_data
     else:
         combined = new_data
+    
+    # Ensure only whitelisted columns in final output
+    final_cols = [c for c in EXPECTED_COLUMNS if c in combined.columns]
+    combined = combined[final_cols]
 
     # -- Format date column to ISO string (timezone-naive) --
     combined["date"] = combined["date"].dt.strftime("%Y-%m-%d %H:%M:%S")

@@ -9,7 +9,9 @@ def CORR(pred, true):
     u = ((true - true.mean(0)) * (pred - pred.mean(0))).sum(0)
     d = np.sqrt(((true - true.mean(0)) ** 2 * (pred - pred.mean(0)) ** 2).sum(0))
     d += 1e-12
-    return 0.01*(u / d).mean(-1)
+    corr_val = 0.01*(u / d).mean(-1)
+    # Ensure scalar output (important for univariate case)
+    return float(np.mean(corr_val))
 
 
 def MAE(pred, true):

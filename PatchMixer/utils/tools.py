@@ -99,6 +99,38 @@ def visual(true, preds=None, name='./pic/test.pdf'):
     plt.legend()
     plt.savefig(name, bbox_inches='tight')
 
+
+def visual_multi_with_dates(input_dates, future_dates, input_series, true_series, pred_series, feature_names,
+                            name='./pic/test.pdf'):
+    """Plot one or many features with a real datetime x-axis."""
+    n_features = len(feature_names)
+    if n_features == 0:
+        return
+
+    all_dates = np.concatenate((np.asarray(input_dates), np.asarray(future_dates)), axis=0)
+    fig, axes = plt.subplots(n_features, 1, figsize=(14, max(3.2, 2.8 * n_features)), sharex=True)
+    if n_features == 1:
+        axes = [axes]
+
+    for idx, ax in enumerate(axes):
+        gt = np.concatenate((input_series[:, idx], true_series[:, idx]), axis=0)
+        pd = np.concatenate((input_series[:, idx], pred_series[:, idx]), axis=0)
+
+        ax.plot(all_dates, gt, label='GroundTruth', linewidth=1.8)
+        ax.plot(all_dates, pd, label='Prediction', linewidth=1.8, alpha=0.9)
+        if len(input_dates) > 0:
+            ax.axvline(input_dates[-1], color='gray', linestyle='--', linewidth=1.0, alpha=0.7)
+        ax.set_ylabel(feature_names[idx])
+        ax.grid(True, alpha=0.25)
+        if idx == 0:
+            ax.legend(loc='upper left')
+
+    axes[-1].set_xlabel('date')
+    fig.autofmt_xdate()
+    plt.tight_layout()
+    plt.savefig(name, bbox_inches='tight')
+    plt.close(fig)
+
 def test_params_flop(model,x_shape):
     """
     If you want to thest former's flop, you need to give default value to inputs in model.forward(), the following code can only pass one argument to forward()

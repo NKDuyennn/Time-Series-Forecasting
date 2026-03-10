@@ -1,7 +1,7 @@
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
 from models import Informer, Autoformer, Transformer, DLinear, Linear, NLinear, PatchTST, PatchMixer
-from utils.tools import EarlyStopping, adjust_learning_rate, visual, test_params_flop
+from utils.tools import EarlyStopping, adjust_learning_rate, visual_multi_with_dates, test_params_flop
 from utils.metrics import metric, MAE, MSE
 
 import numpy as np
@@ -41,6 +41,58 @@ class MultiTaskLoss(nn.Module):
 class Exp_Main(Exp_Basic):
     def __init__(self, args):
         super(Exp_Main, self).__init__(args)
+
+    @staticmethod
+    def _sanitize_datetime_tag(value):
+        return str(value).replace('-', '').replace(':', '').replace(' ', '_').replace('T', '_')
+
+    def _resolve_output_feature_names(self, data_set, output_dim):
+        if self.args.features == 'MS':
+            names = [self.args.target]
+        elif hasattr(data_set, 'feature_cols'):
+            names = list(data_set.feature_cols)
+        else:
+            names = []
+
+        if len(names) < output_dim:
+            names = names + [f'feature_{idx}' for idx in range(len(names), output_dim)]
+        elif len(names) > output_dim:
+            names = names[:output_dim]
+        return names
+
+    def _select_plot_features(self, output_feature_names):
+        requested = [name.strip() for name in getattr(self.args, 'plot_features', '').split(',') if name.strip()]
+        if requested:
+            missing = [name for name in requested if name not in output_feature_names]
+            if missing:
+                print('Warning: requested plot feature(s) not found in model outputs: {}'.format(', '.join(missing)))
+            indices = [output_feature_names.index(name) for name in requested if name in output_feature_names]
+        else:
+            num_features = max(1, int(getattr(self.args, 'plot_num_features', 1)))
+            num_features = min(num_features, len(output_feature_names))
+            indices = list(range(len(output_feature_names) - num_features, len(output_feature_names)))
+
+        if not indices:
+            indices = [len(output_feature_names) - 1]
+        names = [output_feature_names[idx] for idx in indices]
+        return indices, names
+
+    def _get_plot_dates(self, data_set, sample_start):
+        if not hasattr(data_set, 'date_index'):
+            return None, None, None
+
+        all_dates = np.asarray(data_set.date_index)
+        seq_end = sample_start + self.args.seq_len
+        pred_end = seq_end + self.args.pred_len
+        if pred_end > len(all_dates):
+            return None, None, None
+
+        input_dates = all_dates[sample_start:seq_end]
+        future_dates = all_dates[seq_end:pred_end]
+        if len(future_dates) == 0:
+            return None, None, None
+
+        return input_dates, future_dates, self._sanitize_datetime_tag(future_dates[-1])
 
     def _build_model(self):
         model_dict = {
@@ -276,6 +328,11 @@ class Exp_Main(Exp_Basic):
         preds = []
         trues = []
         inputx = []
+        plot_every = max(1, int(getattr(self.args, 'plot_every_n_batches', 20)))
+        plot_sample_idx = max(0, int(getattr(self.args, 'plot_sample_idx', 0)))
+        output_feature_names = None
+        plot_indices = None
+        plot_feature_names = None
         folder_path = './test_results/' + setting + '/'
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
@@ -330,12 +387,59 @@ class Exp_Main(Exp_Basic):
 
                 preds.append(pred)
                 trues.append(true)
-                inputx.append(batch_x.detach().cpu().numpy())
-                if i % 20 == 0:
-                    input = batch_x.detach().cpu().numpy()
-                    gt = np.concatenate((input[0, :, -1], true[0, :, -1]), axis=0)
-                    pd = np.concatenate((input[0, :, -1], pred[0, :, -1]), axis=0)
-                    visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))
+                input_np = batch_x.detach().cpu().numpy()
+                inputx.append(input_np)
+
+                if i % plot_every == 0:
+                    sample_idx = min(plot_sample_idx, input_np.shape[0] - 1)
+                    sample_start = i * test_loader.batch_size + sample_idx
+
+                    if output_feature_names is None:
+                        output_feature_names = self._resolve_output_feature_names(test_data, pred.shape[-1])
+                        plot_indices, plot_feature_names = self._select_plot_features(output_feature_names)
+                        print('Visualization features: {}'.format(', '.join(plot_feature_names)))
+
+                    if self.args.features == 'MS':
+                        input_feature_names = list(getattr(test_data, 'feature_cols', []))
+                        if input_feature_names and self.args.target in input_feature_names:
+                            input_target_idx = input_feature_names.index(self.args.target)
+                        else:
+                            input_target_idx = input_np.shape[-1] - 1
+                        input_for_plot = input_np[sample_idx, :, input_target_idx:input_target_idx + 1]
+                    else:
+                        input_for_plot = input_np[sample_idx, :, :pred.shape[-1]]
+
+                    true_for_plot = true[sample_idx]
+                    pred_for_plot = pred[sample_idx]
+
+                    valid_plot_indices = [
+                        idx for idx in plot_indices
+                        if idx < true_for_plot.shape[-1] and idx < input_for_plot.shape[-1]
+                    ]
+                    if not valid_plot_indices:
+                        valid_plot_indices = [true_for_plot.shape[-1] - 1]
+
+                    valid_feature_names = [output_feature_names[idx] for idx in valid_plot_indices]
+                    input_for_plot = input_for_plot[:, valid_plot_indices]
+                    true_for_plot = true_for_plot[:, valid_plot_indices]
+                    pred_for_plot = pred_for_plot[:, valid_plot_indices]
+
+                    input_dates, future_dates, date_tag = self._get_plot_dates(test_data, sample_start)
+                    if input_dates is None:
+                        input_dates = np.arange(self.args.seq_len)
+                        future_dates = np.arange(self.args.seq_len, self.args.seq_len + self.args.pred_len)
+                        date_tag = 'no_date'
+
+                    file_name = 'batch_{:05d}_{}.pdf'.format(i, date_tag)
+                    visual_multi_with_dates(
+                        input_dates,
+                        future_dates,
+                        input_for_plot,
+                        true_for_plot,
+                        pred_for_plot,
+                        valid_feature_names,
+                        os.path.join(folder_path, file_name)
+                    )
 
         if self.args.test_flop:
             test_params_flop(self.model,(batch_x.shape[1], batch_x.shape[2]))

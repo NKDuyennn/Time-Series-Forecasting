@@ -16,10 +16,16 @@ data_name=custom
 
 random_seed=2021
 
+# test plot config
+plot_every_n_batches=20
+plot_num_features=1
+plot_sample_idx=0
+# Optional explicit feature names, e.g. "system_price"
+plot_features=""
+
 # enc_in = number of feature columns (excluding 'date')
-# Base guaranteed: system_price + 9 area prices + sell_bid + buy_bid + contract = 13
-# If congestion columns present, increase accordingly (up to 22)
-enc_in=13
+# Current base schema: system_price + 9 area prices + sell/buy bid + contract + 4 block volumes = 17
+enc_in=17
 
 for pred_len in 48 96 192 336
 do
@@ -35,6 +41,10 @@ do
       --target system_price \
       --seq_len $seq_len \
       --pred_len $pred_len \
+    --plot_every_n_batches $plot_every_n_batches \
+    --plot_num_features $plot_num_features \
+    --plot_sample_idx $plot_sample_idx \
+    --plot_features "$plot_features" \
       --enc_in $enc_in \
       --e_layers 1 \
       --d_model 256 \

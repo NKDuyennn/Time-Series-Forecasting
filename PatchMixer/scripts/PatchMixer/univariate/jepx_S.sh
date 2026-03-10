@@ -20,6 +20,13 @@ data_name=custom
 
 random_seed=2021
 
+# test plot config
+plot_every_n_batches=20
+plot_num_features=1
+plot_sample_idx=0
+# Optional explicit feature names, e.g. "system_price"
+plot_features=""
+
 for pred_len in 48 96 192 336
 do
     python -u run_longExp.py \
@@ -34,6 +41,10 @@ do
       --target system_price \
       --seq_len $seq_len \
       --pred_len $pred_len \
+    --plot_every_n_batches $plot_every_n_batches \
+    --plot_num_features $plot_num_features \
+    --plot_sample_idx $plot_sample_idx \
+    --plot_features "$plot_features" \
       --enc_in 1 \
       --e_layers 1 \
       --d_model 256 \

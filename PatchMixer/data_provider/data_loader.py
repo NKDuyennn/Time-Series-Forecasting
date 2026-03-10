@@ -55,6 +55,7 @@ class Dataset_ETT_hour(Dataset):
             df_data = df_raw[cols_data]
         elif self.features == 'S':
             df_data = df_raw[[self.target]]
+        self.feature_cols = list(df_data.columns)
 
         if self.scale:
             train_data = df_data[border1s[0]:border2s[0]]
@@ -65,6 +66,7 @@ class Dataset_ETT_hour(Dataset):
 
         df_stamp = df_raw[['date']][border1:border2]
         df_stamp['date'] = pd.to_datetime(df_stamp.date)
+        self.date_index = pd.to_datetime(df_stamp['date'].values)
         if self.timeenc == 0:
             df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
             df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
@@ -143,6 +145,7 @@ class Dataset_ETT_minute(Dataset):
             df_data = df_raw[cols_data]
         elif self.features == 'S':
             df_data = df_raw[[self.target]]
+        self.feature_cols = list(df_data.columns)
 
         if self.scale:
             train_data = df_data[border1s[0]:border2s[0]]
@@ -153,6 +156,7 @@ class Dataset_ETT_minute(Dataset):
 
         df_stamp = df_raw[['date']][border1:border2]
         df_stamp['date'] = pd.to_datetime(df_stamp.date)
+        self.date_index = pd.to_datetime(df_stamp['date'].values)
         if self.timeenc == 0:
             df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
             df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
@@ -244,6 +248,7 @@ class Dataset_Custom(Dataset):
             df_data = df_raw[cols_data]
         elif self.features == 'S':
             df_data = df_raw[[self.target]]
+        self.feature_cols = list(df_data.columns)
 
         if self.scale:
             train_data = df_data[border1s[0]:border2s[0]]
@@ -256,6 +261,7 @@ class Dataset_Custom(Dataset):
 
         df_stamp = df_raw[['date']][border1:border2]
         df_stamp['date'] = pd.to_datetime(df_stamp.date)
+        self.date_index = pd.to_datetime(df_stamp['date'].values)
         if self.timeenc == 0:
             df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
             df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
@@ -341,6 +347,7 @@ class Dataset_Pred(Dataset):
             df_data = df_raw[cols_data]
         elif self.features == 'S':
             df_data = df_raw[[self.target]]
+        self.feature_cols = list(df_data.columns)
 
         if self.scale:
             self.scaler.fit(df_data.values)
@@ -354,6 +361,7 @@ class Dataset_Pred(Dataset):
 
         df_stamp = pd.DataFrame(columns=['date'])
         df_stamp.date = list(tmp_stamp.date.values) + list(pred_dates[1:])
+        self.date_index = pd.to_datetime(df_stamp['date'].values)
         if self.timeenc == 0:
             df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
             df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
