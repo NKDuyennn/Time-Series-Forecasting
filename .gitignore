@@ -91,3 +91,78 @@ logs/
 # Data files (uncomment if datasets are large)
 # dataset/
 # *.csv
+
+# Additional rules merged from Time-Series-Library/.gitignore
+
+# Packaging / installer metadata
+pip-wheel-metadata/
+share/python-wheels/
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Extra test / coverage artifacts
+.nox/
+*.py,cover
+
+# i18n / framework / docs
+*.mo
+*.pot
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+instance/
+.webassets-cache
+.scrapy
+docs/_build/
+target/
+
+# Python env/tooling extras
+__pypackages__/
+celerybeat-schedule
+celerybeat.pid
+*.sage.py
+
+# Editor / static analysis
+.spyderproject
+.spyproject
+.ropeproject
+/site
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# Time-Series-Library specific generated files
+Time-Series-Library/scripts/long_term_forecast/Traffic_script/PatchTST1.sh
+Time-Series-Library/backups/
+Time-Series-Library/result.xlsx
+Time-Series-Library/~$result.xlsx
+Time-Series-Library/Time-Series-Library.zip
+Time-Series-Library/temp.sh
+Time-Series-Library/tv_result.xlsx
+Time-Series-Library/test.py
+Time-Series-Library/m4_results/
+Time-Series-Library/PatchTST_results.xlsx
+Time-Series-Library/seq_len_long_term_forecast/
+Time-Series-Library/progress.xlsx
+Time-Series-Library/scripts/short_term_forecast/PatchTST_M4.sh
+Time-Series-Library/run_tv.py
+Time-Series-Library/scripts/long_term_forecast/ETT_tv_script/
+Time-Series-Library/dataset/
+Time-Series-Library/data/
+Time-Series-Library/data_factory_all.py
+Time-Series-Library/data_loader_all.py
+Time-Series-Library/scripts/short_term_forecast/tv_script/
+Time-Series-Library/exp/exp_short_term_forecasting_tv.py
+Time-Series-Library/exp/exp_long_term_forecasting_tv.py
+Time-Series-Library/timesnetv2.xlsx
+Time-Series-Library/scripts/anomaly_detection/tmp/
+Time-Series-Library/scripts/imputation/tmp/
+Time-Series-Library/utils/self_tools.py
+Time-Series-Library/scripts/exp_scripts/
+Time-Series-Library/result_long_term_forecast.txt
+Time-Series-Library/result_anomaly_detection.txt
+Time-Series-Library/scripts/augmentation/
+Time-Series-Library/run_anylearn.py
+Time-Series-Library/environment.txt
